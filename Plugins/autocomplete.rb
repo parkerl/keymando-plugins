@@ -10,6 +10,9 @@ class Autocomplete < Plugin
 
       def toggle
          @enabled = !@enabled
+         
+         system (@enabled ? '/usr/local/bin/growlnotify -m "" -a Keymando Autocomplete enabled.' : '/usr/local/bin/growlnotify -m "" -a Keymando Autocomplete disabled.')
+         
       end
 
 
@@ -24,8 +27,9 @@ class Autocomplete < Plugin
       end
 
       def filter_words(filter)
+         s = Regexp.escape(filter)
          @words = @words.select do |w|
-            w.match(/^#{filter}\w*/i)
+            w.match(/^#{s}\w*/i)
          end
          @words.delete filter
          @words.sort!
@@ -49,19 +53,17 @@ class Autocomplete < Plugin
    end
 
    def after
-
-      Autocomplete.breaks.each do |b|
-         map b do
-            reset if Autocomplete.enabled?
-            send(b)
-         end
-      end
       Autocomplete.app_list.each do |app|
          only app do
             map Autocomplete.map do
                Autocomplete.toggle
                return if ! Autocomplete.enabled?
-
+               Autocomplete.breaks.each do |b|
+                  map b do
+                     reset if Autocomplete.enabled?
+                     send(b)
+                  end
+               end
                Autocomplete.stash_clipboard
                send('<Alt-Left>')
                send('<Shift-Home>')
@@ -81,15 +83,15 @@ class Autocomplete < Plugin
                map "<Right>" do
                   reset
                end
-               
+
                begin
-                 fill
+                  fill
                rescue
-                 reset
-                 alert('Autocomplete failed')
+                  reset
+                  alert('Autocomplete failed')
                ensure
-                 IO.popen('pbcopy', 'w').puts Autocomplete.original_clipboard
-               end          
+                  IO.popen('pbcopy', 'w').puts Autocomplete.original_clipboard
+               end
             end
          end
       end
@@ -102,6 +104,7 @@ class Autocomplete < Plugin
       send('<Right>')
       map('<Tab>', '<Tab>')
       map("<Right>", "<Right>")
+      Autocomplete.breaks.each { |b| map b, b}
    end
 
    def fill
@@ -116,3 +119,4 @@ class Autocomplete < Plugin
 
 
 end
+
